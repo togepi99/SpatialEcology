@@ -117,8 +117,7 @@ legend <- tm_shape(bbSf)+
           title = 'Sample Date',
           palette = 'Dark2')+
   tm_legend(text.size = 1, title.size = 1.5)+
-  tm_layout(legend.only = TRUE,
-            title.position = c('center', 'center'))
+  tm_layout(legend.only = TRUE)
 
 legend
 
