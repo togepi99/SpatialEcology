@@ -150,3 +150,9 @@ All plots in single panel:
 ```{r}
 tmap_arrange(zoomedOut, Cali, zoomedIn, legend, ncol = 2, asp = NA)
 ```
+
+
+# Grade
+
+$\color{red}{\text{Excellent work Mars. You lost half a point because you had a bunch of symbols (mainly cell colors) with no associated legend values. Everything else was great.}}$
+
