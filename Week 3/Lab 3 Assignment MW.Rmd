@@ -43,6 +43,8 @@ plot(x=c(100, 100/2, 100/5, 100/10), y=varVec)
 
 The mean stays the same. As grain size increases, variance increases, because the sample of cells measured is decreasing.
 
+$\color{red}{\text{I'm not sure I understand what's going on on your x-axes here. Your grain sizes should be 1, 2, 5, and 10 here, right? Your answer should thus be the inverse of what you wrote. As grain size increases, variance decreases. This occurs because we are taking the mean of nearby pixels, and the new, larger grained pixels converge on the true mean of all the values, meaning pixels become more and more alike. Also, in order for this to be reproducible, I need you to include a code chunk at the beginning that loads your required packages. +2.5}}$
+
 
 ## Challenge 2 (4 points)
 
@@ -85,12 +87,16 @@ plot(x=c(100, 100/2, 100/5, 100/10), y=varVec)
 
 When aggregating with the `max` function, the mean increases because lower values are lost with each scaling. The variance follows a similar pattern as aggregating with the `mean` function because the sample size is decreasing in the same way.
 
+$\color{red}{\text{In what situation might you use the max function to scale up the grain size? +3.5}}$
+
 
 ## Challenge 3 (2 points)
 
 **Recall that before we calculated forest cover, we cropped our NLCD raster to minimize its size and the computing effort necessary from our poor little computers. How might that affect our ability to evaluate the scale at which five-lined skinks respond to forest cover? Why?**
 
 If the optimal scale is larger than what's included in the cropped area, then it isn't possible to find that result.
+
+$\color{red}{\text{Perfect. +2}}$
 
 ## Challenge 4 (4 points)
 
@@ -183,6 +189,8 @@ forestData %>%
   PerformanceAnalytics::chart.Correlation(histogram=F)
 ```
 
+$\color{red}{\text{Nice work on the analysis and figures here, Mars, but you didn't answer the questions. What patterns do you see emerge? +2}}$
+
 ## Challenge 5 (4 points)
 
 **Fit 8 logistic regression models (a null model and one for each of the 7 forest scales). Compare these models using AICc. Which scale do you think represents the critical or characteristic scale at which forest cover affects skink presence? Is this scale clearly better than the others, or is there some ambiguity? What are some mechanisms by which forest cover could affect skink presence at this scale? What is your overall conclusion regarding how forest cover affects skink presence (i.e., take a look at the betas)?**
@@ -200,10 +208,12 @@ model5km = glm(pres~for5km, family='binomial', data=forestData)
 
 aictab(list(modelNull, model100m, model500m, model1km, model2km, model3km, model4km, model5km), modnames=c('Null', '100 m', '500 m', '1 km', '2 km', '3 km', '4 km', '5 km'))
 
-summary(model5m)
+# summary(model5m)
 ```
 
 2km has the lowest AIC, although the larger scales up to 5km have very similar betas. It may make sense to explore some larger scales to ensure that betas continue to decrease. Skinks prefer disturbed habitats with both sheltered forest areas and open areas for basking. At a scale of 2km, skinks could travel between forested habitats with moist soil for shelter and brooding to warm open areas, like roads, clearings, or burned areas. Male skinks are territorial, which may make scales smaller than 2km less informative.
+
+$\color{red}{\text{Nice. Plus, overall examination of the betas should be suggesting to you that forest cover has a positive effect on skink presence. +3.5}}$
 
 
 ## Challenge 6 (2 points)
@@ -211,3 +221,5 @@ summary(model5m)
 **If you encounter ambiguity in identifying the characteristic scale of an effect, can you come up with a clever way to condense the information in the multi-scale variables into just one or two? When might it be ok to include two covariates in the same model (think multiple regression) that represent the same ecological feature measured at different scales (e.g., forest cover at 1 km AND forest cover at 5 km in the same model)? I can think of both a biological and a statistical answer to this question.**
 
 If an organism has a known home range size or other spatial scale its known to occupy, including spatial variables both larger and smaller in one model could be informative of which direction to explore further. Including multiple variables in the model allows a direct comparison of the betas, which is still useful even if there is correlation.
+
+$\color{red}{\text{Sure, although you must be careful not to include two variables in the model that are highly correlated with one another, as this can cause variance inflation issues. +2}}$
