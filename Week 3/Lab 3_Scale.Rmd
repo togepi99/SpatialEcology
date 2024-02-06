@@ -1,0 +1,461 @@
+---
+title: "Lab 3 - Multi-scale analyses"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Background
+
+Today we are going to be using rasters and shapefiles to examine how the scaling decisions can affect the properties of your variables and the answers to your questions. The major goals for this lab are to:
+
+1. Learn how to build rasters with a specified grain and extent
+2. Scale up and down the grain and extent of a raster
+3. Calculate the same covariate at multiple spatial scales
+4. Identify characteristic scales of a response
+
+Let's load the required packages. Make sure you install those that you don't already have installed if needed with install.packages().
+
+```{r, warning=F, error=F, message=F}
+
+require(tidyverse)
+require(sf)
+require(AICcmodavg)
+require(tigris)
+require(FedData)
+require(terra)
+require(tidyterra)
+
+```
+
+# Experimenting with grain and extent
+
+
+To start with, we are going to simulate a simple raster. The rast() function in the terra package is generally what you're going to use to create rasters. You can make them from scratch, make them from matrices, or import them from existing raster files on your computer. Here we are just creating one from scratch by specifying we want a 6-by-6 matrix with minimum and maximum x and y coordinates set at 1 and 6.
+
+*Play around with the rast() function at some point. There are lots of variables you can set. For example, here we are specifying the number of columns and rows, as well as a minimum and maximum coordinates for the raster's extent. Thus, the grain size of each cell is going to be 1 unit due to math. But there are dozens of other ways to specify characteristics of rasters.*
+```{r}
+simpRast = rast(ncol=6, nrow=6, xmin=1, xmax=6, ymin=1, ymax=6)
+plot(simpRast)
+```
+
+Note that we don't get anything when we ask it to plot this raster because it's empty - we haven't put any values in the cells. So we're going to fill those cell values with random variables drawn from a Poisson distribution with a mean/variance of 3.
+
+```{r}
+set.seed(23)
+
+simpRast[] = rpois(ncell(simpRast), lambda=3)
+
+#plot
+plot(simpRast)
+text(simpRast, digits=2)
+```
+
+Now we can see that we have a 6-by-6 matrix each containing a random positive integer. Because I set the seed, you should be seeing a matrix that is identical to mine. Note the raster starts filling in values from the top left to the bottom right. To visualize this, we can create a second raster and fill it in with the values 1-36.
+
+```{r}
+ncell(simpRast)
+orderRast <- simpRast
+orderRast[] <- 1:ncell(simpRast)
+
+#plot
+plot(orderRast)
+text(orderRast, digits=2)
+```
+
+### Coarser grains
+
+Ok, we built a raster and now we can alter the grain. Right now, the grain size is 1 unit in both the x and y direction. But pretend I want to double the grain size. I might do this if I simply don't need this fine of a resolution, if I am trying to match the grain size to a second raster, or if there are just too many cells and it's taking my computer too long to run. We do this with the aggregate() function in terra. One thing we have to think about is when we join multiple cells into a single cell, we need to do something to combine the values. A couple of common ways to do this are to calculate either the mean, or the mode.
+
+```{r}
+
+#increase the grain and calculate the mean values
+simpRastMean <- aggregate(simpRast, fact=2, fun='mean')#mean value
+
+#plot mean rule
+plot(simpRastMean)
+text(simpRastMean,digits=1)
+```
+
+```{r}
+
+#increase the grain and calculate the mode
+simpRastMode <- aggregate(simpRast, fact=2, fun='modal')#majority rule
+
+#plot majority rule
+plot(simpRastMode)
+text(simpRastMode)
+```
+
+*Food for thought: When might you use mean vs. mode?*
+
+Let's compare some simple statistics from the original and aggregated rasters. You can calculate raster statistics using either the global() function, or by converting to a matrix and running some of the common arithmetic functions on the matrix.
+
+```{r}
+
+#Calculate the mean and variance of the original raster using the global function
+global(simpRast, mean)
+global(simpRast, var)
+
+#Calculate the mean and variance of the scaled-up raster using a simple arithmetic function
+mean(as.matrix(simpRastMean))
+var(as.matrix(simpRastMean))
+
+#You can also do this with the mode raster.
+
+
+```
+
+*In your assignment you're going to explore more what happens to the mean and variance when you increase the grain.*
+
+
+### Finer grains
+
+Let's go the opposite direction and subset the cells to create a finer grain. We can do this with the disagg() function in the terra package. Here there are really only 2 options for setting new values to the cells. The most intuitive is to simply give it the value of the "nearest" cell that previously existed. In this case, that happens to be the cell that it used to be part of.
+
+```{r}
+#decrease the grain
+simpRastNear <- disagg(simpRast, fact=2)
+
+#plot
+plot(simpRastNear, axes=F, box=F)
+text(simpRastNear, cex=0.9)
+```
+
+QUICK TANGENT: For funsies, I'm going to teach you how to convert this raster to a shapefile in which all cells with the same value have been grouped into "patches." I can think of half a million uses for such a shapefile on the back end, so I thought it was worth seeing.
+
+```{r}
+plot(simpRastNear)
+tmp1 = as.polygons(simpRastNear)
+tmp2 = st_as_sf(tmp1)
+tmp3 = st_cast(tmp2, 'MULTIPOLYGON')
+newShapefile = st_cast(tmp3, 'POLYGON')
+
+# plot(newShapefile)
+
+ggplot(newShapefile)+
+  geom_sf()+
+  geom_sf_text(aes(label=lyr.1))
+
+```
+
+Ok, back to what we were doing. We can also use bilinear interpolation to calculate new values of cells when we disaggregate them. This means that each new cell is going to have a new value based on a distance-weighted average of values in the x and y direction.
+
+```{r}
+#decrease the grain
+simpRastBil <- disagg(simpRast, fact=2, method='bilinear')
+
+#plot
+plot(simpRastBil, axes=F, box=F)
+text(simpRastBil, digits=1, cex=0.6)
+```
+
+### Decrease the extent
+
+Decreasing the extent of a raster is pretty simple as well. All we have to do is create a new extent object (essentially a shapefile) and then crop the raster.
+
+```{r}
+#decrease the extent
+e <- ext(2, 4, 2, 4)#first create new, smaller extent
+simpRastCrop <- crop(simpRast, e)
+
+#plot
+plot(simpRast)
+plot(e, add=T)
+text(simpRast, digits=1, cex=0.6)
+
+plot(simpRastCrop)
+text(simpRastCrop, digits=1, cex=1)
+```
+
+Increasing the extent of the raster is similarly easy.
+
+```{r}
+#increase the extent
+e <- ext(0, 7, 0, 7)#first create new, bigger extent
+simpRastExt <- extend(simpRast,e)
+
+#plot
+plot(simpRast)
+text(simpRast, digits=1, cex=1)
+
+plot(simpRastExt)
+text(simpRastExt, digits=1, cex=1)
+```
+
+Note that the new raster simply has NA values in all of the cells that we added, which could be filled in with our own values if we wanted to do that.
+
+```{r}
+matrix(simpRastExt, nrow=8)
+```
+
+
+# Multiscale responses to land cover
+
+Our goal in this next exercise is going to be to compare a species' response to a habitat characteristic at multiple scales. We are going to be working with a case study species, the five-lined skink and examining the effects of forest cover on its presence/absence. This example was borrowed and tweaked from Fletcher & Fortin (2018).
+
+Reptiles were sampled with drift-fences at 85 sites across the southeastern United States (See Figure 2 in https://onlinelibrary.wiley.com/doi/full/10.1111/gcbb.12453). Sampling occurred in mature longleaf pine savannas, slash/loblolly pine plantations, and corn fields in three geographic regions in the southeastern Coastal Plains (Alabama, Georgia, and Florida). We're going to remove the corn sites for this exercise. Two drift fences were used at each site and sampled for 3 days each month in April through July of 2013-2015.
+
+To quantify forest cover, we are going to be relying on the 2011 National Land Cover Database (NLCD). NLCD is built from Landsat data and divides the entire USA into into one of 20 classification categories at a 30 m pixel resolution or grain. First let's import a shapefile showing the study sites and plot it over the state boundaries to see where we're working.
+
+```{r, warning=F, message=F}
+
+
+sites = st_read("/vsicurl/https://github.com/ValenteJJ/SpatialEcology/raw/main/Week3/reptiledata.shp") %>% 
+  filter(management!='Corn')
+st_crs(sites) = "+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+head(sites)
+
+
+states = states() %>% 
+  filter(NAME %in% c('Alabama', 'Florida', 'Georgia')) %>% 
+  st_transform(crs(sites, proj=T))
+
+
+
+ggplot()+
+  geom_sf(data = states)+
+  geom_sf(data = sites)
+```
+
+Note that one of the neat things about sf objects is that even though they are spatial "shapefiles", we can treat them just like dataframes. Here we are importing a presence/absence dataset associated with these sites and joining it with the sf object "sites."
+
+```{r}
+presAbs = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week3/reptiles_flsk.csv')
+
+sites = sites %>% 
+  left_join(presAbs, by='site')
+```
+
+
+
+Next we need to download the NLCD data relevant to our study area of interest. But remember, we are talking about a 30 m resolution raster that covers the entire United States. It's a BIG file, so anything we can do to constrain the size of that file will be useful. Thus, we're going to take the bounding box of our study area, add 10 km to each side, and then use that new shape to crop the NLCD data to something specific for our needs.
+
+```{r}
+
+#Extract x and y coordinates of the bounding box
+studyArea = st_bbox(sites) + c(-10000, -10000, 10000, 10000)
+studyArea = st_as_sfc(studyArea)
+
+
+ggplot()+
+  geom_sf(data = states)+
+  geom_sf(data = studyArea, fill=NA, color='red')+
+  geom_sf(data = sites)
+
+```
+
+Downloading the NLCD data should take about a minute to run.
+
+```{r}
+nlcd = get_nlcd(studyArea,
+                label='studyArea',
+                year = 2016,
+                dataset = 'landcover',
+                landmass = 'L48'
+)
+
+
+
+plot(nlcd, 1, legend=T, plg=list(cex=0.5))
+plot(st_geometry(sites), add=T, pch=16)
+```
+
+```{r}
+#Only use this code chunk if the previous one is not working - I had to add this in because the website is down for some reason. Download the raster folder I provided (nlcd2011SE), and change the path name below in the rast() function to link to the raster locally on your computer. Everything should work from there.
+
+
+# nlcd = rast("filepathname/nlcd2011SE")
+# nlcd = crop(nlcd, studyArea)
+# 
+# 
+# tmp = data.frame('ID' = sort(unique(values(nlcd))),
+#                  'category' = c(NA, 'Open Water', rep('Developed', 4), 'Barren', 'Deciduous Forest', 'Evergreen Forest', 'Mixed Forest', 'Shrub', 'Grassland', 'Pasture', 'Cultivated Crops', 'Woody Wetlands', 'Emergent Herbaceous Wetlands'))
+# tmp
+# 
+# 
+# nlcd = categories(nlcd, value=tmp)
+# 
+# plot(nlcd, 1, legend=T, plg=list(cex=0.5))
+# plot(st_geometry(sites), add=T, pch=16)
+```
+
+
+When it's done, you will see that you can plot landcover for the whole study area. Let's explore a couple of details about this raster, namely the projection, extent, grain, and number of cells.
+
+
+```{r}
+crs(nlcd, proj=T)
+
+ext(nlcd)
+
+res(nlcd)
+
+ncell(nlcd)
+```
+
+So what we have here is essentially a spatially referenced matrix with 157 million cells And each of those 157 million cells is labeled as one of 20 factors.
+
+```{r}
+
+levels(nlcd)
+
+```
+
+To simplify our quantification of forest cover, we are going to turn this raster into a binary forest / non-forest layer. That is, anything categorized as Deciduous Forest, Evergreen Forest, or Mixed Forest will receive a value of 1, and everything else will receive a value of 0.
+
+```{r}
+
+forest = nlcd %>% 
+  setValues(0)
+
+forest[nlcd=='Deciduous Forest' | nlcd=='Evergreen Forest' | nlcd=='Mixed Forest'] = 1
+plot(forest)
+plot(st_geometry(sites), add=T, pch=16, col='black')
+```
+
+
+To evaluate the effect of forest cover on skink distribution, we need to quantify the amount of forest around each point where we sampled for skinks. But what is the correct scale at which to measure this? Let's start by picking a couple of them arbitrarily - 1 km and 5 km - and measuring the amount of forest within those distances of each point. To demonstrate how this works, let's just start with a single point.
+
+```{r}
+
+buffSite5km = st_buffer(sites[1,], dist=5000)
+buffSite1km = st_buffer(sites[1,], dist=1000)
+
+```
+
+This drew 2 circles around our first point, one with a radius of 5000 m (5 km) and one with a radius of 1000 m (1 km). The terra package has a handy zoom() function that allows us to zoom in on a specific part of the raster. So let's zoom in on the buffer zones we just created.
+
+```{r}
+
+zoom(nlcd, buffSite5km)
+plot(st_geometry(buffSite5km), border='black', lwd=5, add=T)
+plot(st_geometry(buffSite1km), border='black', lwd=3, add=T)
+plot(st_geometry(sites[1,]), pch=16, cex=2, color='black', add=T)
+
+zoom(forest, buffSite5km)
+plot(st_geometry(buffSite5km), border='black', lwd=5, add=T)
+plot(st_geometry(buffSite1km), border='black', lwd=3, add=T)
+plot(st_geometry(sites[1,]), pch=16, cex=2, color='black', add=T)
+```
+
+Now we want to quantify the amount of forest within each buffered area. There are a few ways to skin this cat, but the easiest is to first crop and mask the forest layer...
+
+```{r}
+buffFor1km = crop(forest, buffSite1km, mask=T)
+plot(buffFor1km)
+```
+
+... then sum the number of cells with a value of 1...
+
+```{r}
+numCells = global(buffFor1km, 'sum', na.rm=T)
+numCells
+```
+
+So this tells us the number of 30-by-30 m pixels that are comprised of forest. We can multiply this by the area of a single cell to find out how many square meters and/or hectares of forest there are within 1 km
+
+```{r}
+#Square meters in a single cell
+cellArea = prod(res(buffFor1km))
+cellArea
+
+#Square meters of forest within 1 km
+forestAreaM = numCells * cellArea
+forestAreaM
+
+#Hectares of forest within 1 km
+forestAreaHa = forestAreaM / 10000
+forestAreaHa
+
+#Total area within 1 km
+totalAreaHa = (pi*1000^2) / 10000
+totalAreaHa
+
+#Proportion of 1 km comprised of forest
+propForest = forestAreaHa / totalAreaHa
+propForest
+```
+
+
+So now, for a single point, you know how much forest there is within a 1 km buffer. Let's package this into a nice little function and then use a for loop to calculate this value for all of the points in our sample at 2 scales, 1 km and 5 km.
+
+
+```{r}
+
+
+bufferCover = function(shp, size, landcover){
+  buffArea = (pi*size^2)/10000
+  grainArea = (prod(res(landcover)))/10000
+  
+  buffi = st_buffer(shp[i,], dist=size)
+  cropi = crop(landcover, buffi, mask=T)
+  numCells = global(cropi, 'sum', na.rm=T)
+  forestHa = numCells * grainArea
+  propForest = forestHa / buffArea
+  
+  return(propForest)
+}
+
+
+#This is where we are going to store the output values
+for1km = as.vector(rep(NA, nrow(sites)))
+for5km = as.vector(rep(NA, nrow(sites)))
+
+for(i in 1:nrow(sites)){
+  for1km[i] = bufferCover(sites, 1000, forest)
+  for5km[i] = bufferCover(sites, 5000, forest)
+}
+
+forestData = sites %>% 
+  mutate(for1km = unlist(for1km),
+         for5km = unlist(for5km))
+
+head(forestData)
+```
+
+Ok, so there we have it. We now know what proportion of the area around each point is comprised of forest at two scales. What is the relationship between these two variables?
+
+```{r}
+
+forestData %>% 
+  as.data.frame() %>% 
+  select(coords_x1, for1km, for5km) %>% 
+  PerformanceAnalytics::chart.Correlation(histogram=F)
+
+```
+
+It looks like they are moderately, positively correlated with one another, but they are certainly not the same variable. Our next question then might be "which one of these scales is right for examining five-lined skink responses to forest cover?" Let's let the data tell us what they think. In theory, forest cover should have the most explanatory power on skink presence if we match the scale at which forest cover affects skink presence. So, we're going to fit two logistic regression models and compare them to one another. 
+
+```{r}
+
+modelNull = glm(pres~1, family='binomial', data=forestData)
+model1km = glm(pres~for1km, family='binomial', data=forestData)
+model5km = glm(pres~for5km, family='binomial', data=forestData)
+
+aictab(list(modelNull, model1km, model5km), modnames=c('Null', '1 km', '5 km'))
+
+```
+
+Both models that include forest as a covariate have substantially more support than the null model. But the model that contains the 5 km variable has substantially greater support, implying that 5 km is closer to the characteristic scale at which forest cover influences skink presence. We can also compare the effect size for these covariates.
+
+```{r}
+effects = data.frame(model = c('1km', '5km'),
+           beta = c(summary(model1km)$coefficients[2,1], summary(model5km)$coefficients[2,1]),
+           se = c(summary(model1km)$coefficients[2,2], summary(model5km)$coefficients[2,2]))
+
+effects = effects %>% 
+  mutate(lcl = beta - 1.96*se,
+         ucl = beta + 1.96*se)
+
+ggplot(effects, aes(x=model))+
+  theme_bw()+
+  theme(panel.grid=element_blank())+
+  geom_point(aes(y=beta))+
+  geom_errorbar(aes(ymin=lcl, ymax=ucl))
+
+
+```
+
+
+
