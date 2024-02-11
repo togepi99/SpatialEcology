@@ -73,6 +73,8 @@ PerformanceAnalytics::chart.Correlation(R=patchDataWide[,5:16], histogram=F)
 
 Area and core are perfectly redundant, since they're both area measures and core has simply subtracted the edge. These are both strongly correlated with perimeter as well. CAI is a more detailed measure of core, and correlates with contiguous area. Gyrate correlates with CAI, perimeter, area and core because it is a measure of patch compactness. FRAC and shape both measure patch shape complexity. The package defines each of these metrics as either "core area", "area and edge", or "shape", and ENN as the only "aggregation" measure.
 
+$\color{red}{\text{Nice. +4}}$
+
 
 ## Challenge 2 (4 points)
 
@@ -120,6 +122,9 @@ nn distance: 83.78503/69.48852
 edge dens: 54.5052515/54.5052515
 
 Fewer directions = more patches. The mean and SD decrease with increasing number of patches. Nearest neighbor distance decreases with fewer directions. Edge density doesn't change. Choosing one or the other may depend on biology, e.g. home range size or the ability or requirements of the organism to travel between patches.
+
+$\color{red}{\text{Excellent. +4}}$
+
 
 
 ## Challenge 3 (4 points)
@@ -231,6 +236,9 @@ shei
 ```
 
 Shannon diversity and evenness increased. The classes became more proportional with time.
+
+$\color{red}{\text{Good. +4}}$
+
 
 
 ## Challenge 4 (4 points)
@@ -350,6 +358,9 @@ plot(x=seq(10, 90, by=10), y=vossContigWide[2,6:14], type="l")
 Total area: to see the increasing proportion of the forest class.
 Mean patch size: to see fluctuations in the mean as new patches form and older patches grow larger.
 Patch contiguity: patch contiguity fluctuates as smaller, isolated patches form and are then subsumed into the larger patches.
+
+$\color{red}{\text{Nice. +4}}$
+
 
 ## Challenge 5 (4 points)
 
@@ -482,3 +493,5 @@ ENN: to show a reduced number of larger patches; but it didn't show that. It sta
 Mean CAI: to show patches are growing larger. Core area increases as the class becomes more contiguous and there are fewer and larger patches.
 
 Clumpiness index: to show a reduced number of larger patches. This aggregate metric steadily increases with H as patches become fewer and larger. Because the unit is pixel rather than patch, the variance doesn't increase like with ENN.
+
+$\color{red}{\text{Good work, Mars! +4}}$
