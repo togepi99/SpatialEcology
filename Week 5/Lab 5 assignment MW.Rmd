@@ -26,6 +26,9 @@ plot(pop)
 
 I have 97 organisms. Lambda is points per unit area. There are 10,000 units * intensity of 0.01 = 100 expected organisms.
 
+$\color{red}{\text{Perfect. +3}}$
+
+
 # Challenge 2 (3 points)
 
 Verify that there no linear or quadratic pattern in the distribution of your organisms using fitted Poisson process models. Show the outcome of this analysis and explain your conclusion.
@@ -40,6 +43,9 @@ data.frame(model <- c('ident', 'linear', 'quad'),
 ```
 
 Linear and quadratic models have higher AIC than a model with just 1, so those patterns are not present.
+
+$\color{red}{\text{Nice. +3}}$
+
 
 # Challenge 3 (14 points)
 
@@ -130,3 +136,5 @@ plot(pEnv2, shade=c('hi', 'lo'), legend=F)
 
 
 I think these analyses suggest that Critter 1 is the prey and Critter 2 is the predator. Critter 1 are congregating in predator-free areas at small spatial scales under ~11 m. `lCritter` shows Critter 1's distribution relative to Critter 2's, which means that under 3 m they are close, but above 3 m they are more separated than expected; suggesting this is the distance that they flee the predator. Critter 2 is slightly more distributed at smaller scales under 3 m, which would happen if they are pursuing prey in different directions.
+
+$\color{red}{\text{Awesome work, Mars! +14}}$
