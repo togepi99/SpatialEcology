@@ -35,6 +35,9 @@ ggplot(blueVanes, aes(x=x, y=y, color=meanBee))+
 
 Yes
 
+$\color{red}{\text{What are you basing that on? +1}}$
+
+
 # Challenge 2 (3 points)
 
 Empirically test for evidence of spatial dependence in bee abundance by first building a corelogram, then building a semi-variogram. Be sure to provide an envelope for assessing whether the values in each figure are statistically different from what would be expected if the bee values were randomly distributed. Describe the patterns you see, and your interpretation with regards to the spatial dependence in mean bee abundance. Be sure to identify the maximum distance at which you should interpret your figures (2/3 of the maximum distance between points).
@@ -75,6 +78,9 @@ plot(variogramBee, envelope=varioEnvelope)
 ```
 
 Bee density shows positive spatial autocorrelation both at distances below ~22m and above ~75 m. While the correlogram shows negative correlation at between distances, the effect size may not be biologically significant.
+
+$\color{red}{\text{Perfect. +3}}$
+
 
 # Challenge 3 (4 points)
 
@@ -118,6 +124,7 @@ plot(variogramResiduals, envelope=varioEnvelopeResiduals)
 
 The effect of intercept in the model is equal to the mean bee abundance. The graphs are identical to the previous graphs. `geoBee$data` and `residuals` are identical except that `residuals` is centered around 0.
 
+$\color{red}{\text{Excellent. +4}}$
 
 
 # Challenge 4 (4 points)
@@ -140,7 +147,8 @@ ggplot() +
   theme(panel.grid=element_blank())
 ```
 
-No text required
+$\color{red}{\text{Perfect. +4}}$
+
 
 # Challenge 5 (4 points)
 
@@ -182,9 +190,15 @@ plot(variogramFloral, envelope=varioEnvelopeFloral)
 
 Spatial dependence at shorter distances is now reduced in both plots and at longer distances in the variogram.
 
+$\color{red}{\text{Good. +4}}$
+
+
 # Challenge 6 (3 points)
 
 What is your assessment regarding the distribution of bee abundance in this study area? Does it exhibit spatial dependence, and if so, what is driving that pattern?
 
 Distribution of bees is driven by the distribution of flowers at a scale of 15 m. Spatial dependence is driven by the distribution of flowers.
+
+$\color{red}{\text{Nice work. +3}}$
+
 
