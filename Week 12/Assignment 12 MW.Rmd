@@ -1,0 +1,149 @@
+---
+title: "Assignment 12 - Connectivity"
+output: html_notebook
+---
+
+
+```{r}
+require(tidyverse)
+require(terra)
+require(sf)
+require(gdistance)
+require(igraph)
+require(fitdistrplus)
+require(fdrtool)
+```
+
+
+# Challenge 1 (5 points)
+
+In the lab, we calculated Euclidean distance, least-cost distance, commute distance (based on circuit theory), and a randomized shortest path distance. Examine the correlation among these 4 metrics of effective distance. Which tend to be the longest, which tend to be the shortest, and why? In what situations might you expect to find strong differences between Euclidean distance and the other metrics of effective distance?
+
+```{r}
+land = rast('https://github.com/ValenteJJ/SpatialEcology/raw/main/Week10/panther_landcover.tif')
+public = st_read('/vsicurl/https://github.com/ValenteJJ/SpatialEcology/raw/main/Week12/panther_publicland.shp')
+st_crs(public) = crs(land)
+publicCentroids = st_centroid(public)
+classification = read.table('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week12/resistance%20reclass.txt', header=T)
+landCost = classify(land, classification[,c(1,3)])
+landCost = raster(landCost)
+
+geoDist = pointDistance(publicCentroids, lonlat=F)
+geoDist = as.dist(geoDist)
+
+landCond = transition(1/landCost, transitionFunction = mean, 8)
+landCond = geoCorrection(landCond, type='c', multpl=F)
+lcDist = costDistance(landCond, st_coordinates(publicCentroids))
+
+circuitDist = commuteDistance(landCond, st_coordinates(publicCentroids))
+
+rspDist1.2 = rSPDistance(landCond, from=st_coordinates(publicCentroids)[1,], to=st_coordinates(publicCentroids)[2,], theta=0.001)
+
+geoDist
+lcDist
+circuitDist
+rspDist1.2
+```
+
+Methods that take resistance into account when generating paths will be longer, because resistance causes deviations from the straight line Euclidean distance. The least cost distance is the longest because it calculates the path of least resistance on the landscape. Two points separated by barriers, like water, mountains, or development, may cause other distance metrics to diverge from the Euclidean distance.
+
+# Challenge 2 (5 points)
+
+In the lab we developed a 10% least-cost corridor between two protected areas. Identify what proportion of this corridor is comprised of each landcover type based on the land raster. To do this, make sure that both the land and leastCostCorridor10 rasters are spatRasters. Then mask land with leastCostCorridor10. The values in the resulting raster will be representative of the landcover values in the corridor. Summarise this information and refer back to the classification dataframe to link the landcover numbers with landcover types. What are the three most common landcover types within this corridor, and does this make sense given what you know about the resistance to movement within such landcover types?
+
+```{r}
+fpwrOssfExtent = extent(642000, 683000, 237000, 298000)
+landSub = crop(land, fpwrOssfExtent)
+landCostSub = crop(landCost, fpwrOssfExtent)
+landCondSub = transition(1/landCostSub, transitionFunction=mean, 8)
+landCondSub = geoCorrection(landCondSub, type='c', multpl=F)
+fpwrCost = accCost(landCondSub, st_coordinates(publicCentroids)[5,])
+ossfCost = accCost(landCondSub, st_coordinates(publicCentroids)[3,])
+leastCostCorridor = overlay(fpwrCost, ossfCost, fun=function(x, y){return(x+y)})
+quantile10 = quantile(leastCostCorridor, probs=0.1, na.rm=T)
+leastCostCorridor10 = leastCostCorridor
+values(leastCostCorridor10) = NA
+leastCostCorridor10[leastCostCorridor < quantile10] = 1
+
+leastCostCorridor10 <- rast(leastCostCorridor10)
+crs(leastCostCorridor10) = crs(land)
+
+landCorridor <- crop(land, leastCostCorridor10) %>%
+  mask(leastCostCorridor10)
+
+plot(landCorridor)
+landCorridorDf <- as.data.frame(landCorridor)
+table(landCorridorDf)
+```
+
+Cypress swamp, Pineland, and Freshwater marsh are the most abundant land covers. This makes sense as these are relatively open landscapes, as long as the traveler is tolerant of shallow water.
+
+
+# Challenge 3 (5 points)
+
+In the lab, we used the passage() function to conduct a randomized shortest path analysis mapping connectivity among two protected areas. We initially set theta to 0 thus resulting in a circuit theory based map of connectivity. Using the same passage() function, conduct the analysis again using values of theta = 0.0001 and theta = 0.001. Plot the resulting maps. What patterns do you see emerge as theta increases? Comment on the tradeoffs between biological realism and ease of conservation planning based on these three different maps of connectivity.
+
+```{r}
+passageMapT0 = passage(landCondSub, origin = st_coordinates(publicCentroids)[3,], goal = st_coordinates(publicCentroids)[5,], theta=0)
+passageMapT0.0001 = passage(landCondSub, origin = st_coordinates(publicCentroids)[3,], goal = st_coordinates(publicCentroids)[5,], theta=0.0001)
+passageMapT0.001 = passage(landCondSub, origin = st_coordinates(publicCentroids)[3,], goal = st_coordinates(publicCentroids)[5,], theta=0.001)
+
+plot(passageMapT0)
+plot(passageMapT0.0001)
+plot(passageMapT0.001)
+```
+
+As theta increases, the possible paths condense into a smaller area of the landscape. While it is unlikely every individual will always use the exact same path, it can show what part of the landscape is potentially the most valuable to moving wildlife from a conservation perspective.
+
+
+# Challenge 4 (5 points)
+
+In the latter part of the lab, we discussed calculating patch-based and landscape-based metrics of connectivity. Patch number 6 had the lowest degree (n = 2) while patch number 7 had one of the highest degrees (n = 12). First delete patch number 6 from the network, and then examine the impacts on the landscape level metrics integral index of connectivity (ICC) and probability of connectivity (PC). Now replace patch 6 back into the network and instead delete patch number 7. Again, examine how ICC and PC change. How does the loss of patch 6 compare to the loss of patch 7 in terms of its impacts on landscape-level connectivity?
+
+```{r}
+nodes = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week12/kite_nodes.csv')
+nodes = nodes[-7,]
+area = nodes$area
+aObs = read.csv('https://raw.githubusercontent.com/ValenteJJ/SpatialEcology/main/Week12/kite_movement.csv')[,-1]
+aObs = aObs[-7, -7]
+diag(aObs) = 0
+coords = cbind(nodes$XCoord, nodes$YCoord)
+distMat = pointDistance(coords, lonlat=F)
+distMat = distMat / 1000 # in km
+linkLoc = which(aObs > 0, arr.ind=T)
+withinDisp = cbind(distMat[linkLoc], aObs[linkLoc])
+withinDisp = rep(withinDisp[,1], withinDisp[,2])
+aMeanDist = mean(withinDisp)
+
+aMean = matrix(0, nrow=nrow(aObs), ncol=ncol(aObs))
+aMean[distMat < aMeanDist] = 1
+diag(aMean) = 0
+
+aProb = matrix(0, nrow=nrow(aObs), ncol=ncol(aObs))
+alpha = 1/aMeanDist
+aProb = exp(-alpha*distMat)
+diag(aProb)=0
+
+graphAmean = graph_from_adjacency_matrix(aMean, mode='undirected')
+graphAprob = graph_from_adjacency_matrix(aProb, mode='undirected', weighted=T)
+graphAobs = graph_from_adjacency_matrix(as.matrix(aObs), mode='directed', weighted=T)
+
+AL = 63990 # Approximate study area in km^2
+nlMat = distances(graphAmean)
+nlMat [is.infinite(nlMat)] = 1000
+iicMat = outer(area, area)/(1+nlMat)
+iic = sum(iicMat)/AL^2
+iic
+
+pStarMat = distances(graphAprob, weights=E(graphAprob)$weight)
+pStarMat = exp(-pStarMat)
+pcNum = outer(area, area)*pStarMat
+pc = sum(pcNum)/AL^2
+pc
+```
+
+All patches: iic = 0.002805411; pc = 0.00595698
+Without 6: iic = 0.002799433; pc = 0.005961139
+Without 7: iic = 0.002650867; pc = 0.005632307
+
+IIC should decline with loss of non-redundant links. IIC declines slightly with the loss of patch 6 (-0.00006), but more with the loss of patch 7 (-0.00015). This reflects that patch 7 has more links than patch 6. PC declines slightly with the loss of patch 6 (-0.00004), and declines by an order of magnitude more with the loss of patch 7 (-0.0003). Patch 7 has a greater effect on connectivity between any two random points. Both metrics support that patch 7 has a greater effect than patch 6 on overall landscape connectivity.
