@@ -119,6 +119,8 @@ plot(rfMap)
 
 All of them show a similar distribution pattern. The GLM appears the most conservative, as the probabilities don't exceed around 0.4, but it has labeled much less area as 0; while the other two show probabilities over 0.8 at the highest as well as more area at 0. The random forest model seems the most precise but could be overfit. Each of these models correlates presence with the covariates in different ways.
 
+$\color{red}{\text{What are those different ways? +3}}$
+
 # Challenge 2 (4 points)
 
 When we fit our GLM in lab, we used background points, rather than true absence points, to represent pseudo-absences. Fit the exact same GLM model, only this time use presence and true absence data. That is, replace the background rows in the data frame with rows that represent actual sites where surveys were completed but Varied Thrush were not detected. Once you've fit the GLM, build a new SDM from this fitted model and visually compare the prediction surface to that built based on the presence-background model. 
@@ -132,6 +134,8 @@ plot(glmMap2)
 *What discrepancies do you notice, and what is your intuition regarding which of these two models is more reliable?*
 
 The model with absences shows much higher probabilities than the GLM that used background points, and it puts less of the area at 0. It seems more useful.
+
+$\color{red}{\text{Why does it seem more useful? +3.5}}$
 
 # Challenge 3 (4 points)
 
@@ -201,6 +205,8 @@ ggplot(tmp, aes(x=xValue, y=value, color=name))+
 
 It seems that the Presence/Absence model has stronger predictive power for all 4 variables, which explains why the probabilities on the map are less conservative than the model with background points.
 
+$\color{red}{\text{The PA model is certainly giving larger predicted values, but this doesn't at all mean that it has stronger predictive power. The major difference here is in the number of background / absence points. The predicted values for the presence-background points are a function of how many background points you choose, and that's why the large discrepancy exists. Otherwise, I'd argue that the patterns of predicted responses as a function of the covariates are relatively similar between the two models. +3}}$
+
 # Challenge 4 (4 points)
 
 Varied Thrush are considered forest-dependent, and thus one might characterize mesic forests as "habitat" for the species. Calculate the total amount of mesic forest in the study area, and the mean size of the mesic forest patches.
@@ -232,6 +238,8 @@ area: 31 312 ha
 mean: 12 ha
 
 I chose a threshold of 0.5, which is the probability of heads in a coin flip. This gave me an area much smaller than I expected. This could be useful if I want to reliably find this species, but the mesic forest map gives much more potential area to sample.
+
+$\color{red}{\text{Nice. +4}}$
 
 # Challenge 5 (4 points)
 
@@ -272,3 +280,5 @@ plot(maxentModel3, type='logistic')
 *What is the regularization constant doing? Hint: you may need to Google it.*
 
 The regulation constant looks like it broadly increases and distributes probabilities, and is described in the literature as a remedy to model over-fitting. It does this by limiting precision and removing coefficients and thus complexity from the model.
+
+$\color{red}{\text{Awesome. +4}}$
