@@ -22,6 +22,9 @@ pantherHomeRange
 
 No text necessary.
 
+$\color{red}{\text{Hm, I was expecting you to run the code and pull the values from your fitted models, but I suppose this works. +4}}$
+
+
 
 # Challenge 2 (4 points)
 
@@ -39,6 +42,9 @@ ggplot(data=melt, aes(x=variable, y=value)) +
 ```
 
 `MCP` tends to be largest because it is just connecting dots, which creates a convex shape and may include a lot of space that isn't actually used. `a-LoCoh` is the smallest. It is building an area from small polygons and adding them up, so it doesn't include excessive convex/unused space. `KDE` and `Brownian` also avoid unused space.
+
+$\color{red}{\text{Good. +4}}$
+
 
 # Challenge 3 (3 points)
 
@@ -96,6 +102,9 @@ Wet forest: 0.051
 Dry forest: 0.146
 
 Because the MCP method is the one most likely to overestimate range size, these proportions might not be very accurate.
+
+$\color{red}{\text{Agreed +3}}$
+
 
 # Challenge 4 (6 points)
 
@@ -172,8 +181,13 @@ ggplot(data=bbWetDryProps) +
 
 No text needed
 
+$\color{red}{\text{Good, but I needed to see the proportions of each cover type available in the MCP home ranges on this plot as well. +5.5}}$
+
+
 # Challenge 5 (3 points)
 
 Does the panther you chose in Challenge 3/4 prefer dry and/or wet forest? What is your justification for your answer?
 
 When choosing only between forest types, it appears there is a slight preference for dry forest over wet forest. At smaller home range sizes, wet/dry forest makes up a larger proportion of habitat that at larger sizes. However, freshwater marsh habitats make up the largest single proportion at most sizes. Perhaps more time is spent in forest habitat, making it more dominant at small sizes, and activities that require roaming, like hunting or searching for mates, can occur in other habitat types, like marshes.
+
+$\color{red}{\text{Good thinking, but I was hoping to see you compare the finer scale spaces used to what was available at the broader spatial scale. +2}}$
