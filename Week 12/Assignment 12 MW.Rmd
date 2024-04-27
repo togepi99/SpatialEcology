@@ -47,6 +47,8 @@ rspDist1.2
 
 Methods that take resistance into account when generating paths will be longer, because resistance causes deviations from the straight line Euclidean distance. The least cost distance is the longest because it calculates the path of least resistance on the landscape. Two points separated by barriers, like water, mountains, or development, may cause other distance metrics to diverge from the Euclidean distance.
 
+$\color{red}{\text{I was hoping to see you calculate this for multiple patches and look at correlation, but good work on your reasoning. +3}}$
+
 # Challenge 2 (5 points)
 
 In the lab we developed a 10% least-cost corridor between two protected areas. Identify what proportion of this corridor is comprised of each landcover type based on the land raster. To do this, make sure that both the land and leastCostCorridor10 rasters are spatRasters. Then mask land with leastCostCorridor10. The values in the resulting raster will be representative of the landcover values in the corridor. Summarise this information and refer back to the classification dataframe to link the landcover numbers with landcover types. What are the three most common landcover types within this corridor, and does this make sense given what you know about the resistance to movement within such landcover types?
@@ -78,6 +80,8 @@ table(landCorridorDf)
 
 Cypress swamp, Pineland, and Freshwater marsh are the most abundant land covers. This makes sense as these are relatively open landscapes, as long as the traveler is tolerant of shallow water.
 
+$\color{red}{\text{Good. +5}}$
+
 
 # Challenge 3 (5 points)
 
@@ -94,6 +98,8 @@ plot(passageMapT0.001)
 ```
 
 As theta increases, the possible paths condense into a smaller area of the landscape. While it is unlikely every individual will always use the exact same path, it can show what part of the landscape is potentially the most valuable to moving wildlife from a conservation perspective.
+
+$\color{red}{\text{Good. +5}}$
 
 
 # Challenge 4 (5 points)
@@ -147,3 +153,5 @@ Without 6: iic = 0.002799433; pc = 0.005961139
 Without 7: iic = 0.002650867; pc = 0.005632307
 
 IIC should decline with loss of non-redundant links. IIC declines slightly with the loss of patch 6 (-0.00006), but more with the loss of patch 7 (-0.00015). This reflects that patch 7 has more links than patch 6. PC declines slightly with the loss of patch 6 (-0.00004), and declines by an order of magnitude more with the loss of patch 7 (-0.0003). Patch 7 has a greater effect on connectivity between any two random points. Both metrics support that patch 7 has a greater effect than patch 6 on overall landscape connectivity.
+
+$\color{red}{\text{Perfect. +5}}$
