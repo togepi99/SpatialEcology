@@ -1,0 +1,252 @@
+---
+title: "Final Project"
+author: "M Walters"
+date: "2024-04-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(sf)
+library(terra)
+library(tidyterra)
+library(geodata)
+library(FedData)
+library(tigris)
+library(landscapemetrics)
+library(stats)
+```
+
+Import data
+
+```{r}
+alabama <- states() %>% 
+  filter(NAME=='Alabama')
+
+nlcd <- get_nlcd(alabama, label='AlLandscape', year=2021)
+
+wma <- sf::st_read('/vsicurl/https://github.com/togepi99/SpatialEcology/raw/main/ICPTracts_PhaseII/ICPTracts_PhaseII.shp')
+wma <- st_transform(wma, "EPSG:5070")
+
+points <- read_sf('/vsicurl/https://github.com/togepi99/SpatialEcology/raw/main/finalSample/finalSample.shp')
+points <- st_transform(points, "EPSG:5070")
+points_spat <- vect(points)
+```
+
+Simplify NLCD classes
+
+```{r}
+nlcdCrop <- crop(nlcd, wma) %>%
+  mask(wma)
+
+nlcdCats <- nlcdCrop
+
+nlcdCats[nlcdCats==11] <- 1 #open water
+nlcdCats[nlcdCats %in% c(21, 22, 23, 24, 31)] <- 2 #developed/barren
+nlcdCats[nlcdCats==41] <- 3 #deciduous forest
+nlcdCats[nlcdCats==42] <- 4 #evergreen forest
+nlcdCats[nlcdCats==43] <- 5 #mixed forest
+nlcdCats[nlcdCats %in% c(51,52,71,72,81,82)] <- 6 #scrub/grassland/ag.
+nlcdCats[nlcdCats %in% c(73,74,90,95)] <- 7 #wetland
+
+cats <- data.frame('ID' = c(1, 2, 3, 4, 5, 6, 7),
+                   'category' = c('water', 'developed', 'deciduous', 'evergreen', 'mixed', 'open', 'wetland'))
+
+nlcdCats <- categories(nlcdCats, value=cats)
+mypalette <- c('#51A3CC', '#99540F', '#6B990F', '#006666', '#C3E57E', '#FFD8B2', '#B2E5FF')
+```
+
+Deciduous patch analysis
+
+```{r}
+patched_raster_3 <- get_patches(nlcdCats, class = 3)
+
+nrow(terra::unique(patched_raster_3[[1]][[1]]))
+
+deciduousPatches <- extract(patched_raster_3[[1]][[1]], points_spat)
+deciduousPatches <- unique(deciduousPatches$lyr.1)
+deciduousPatches <- deciduousPatches[!is.na(deciduousPatches)]
+
+deciduous_patches <- nlcdCats |>
+  lsm_p_area() |>
+  dplyr::filter(class == 3)
+
+deciduousSampled <- subset(deciduous_patches, id %in% deciduousPatches)
+deciduousSampled$sampled <- 1
+deciduous_patches$sampled <- 0
+
+deciduousValue <- c(deciduous_patches$value, deciduousSampled$value)
+deciduousClass <- c(deciduous_patches$sampled, deciduousSampled$sampled)
+
+deciduous <- as.data.frame(cbind(deciduousValue, deciduousClass))
+colnames(deciduous) <- c('value', 'sampled')
+
+ggplot(deciduous, aes(x=value, color=as.factor(sampled), fill=as.factor(sampled))) + 
+  geom_histogram(binwidth=1, alpha=0.2, position="identity") +
+  scale_x_sqrt() +
+  scale_y_sqrt() +
+  labs(fill='Patches', title = "Deciduous Patches") +
+  scale_fill_hue(labels = c("Available", "Sampled")) +
+  xlab("Area (ha)") +
+  ylab("Count") +
+  scale_colour_discrete(guide = "none") +
+  theme_bw()
+
+ks.test(deciduousSampled$value, deciduous_patches$value)
+```
+
+Evergreen patch analysis
+
+```{r}
+patched_raster_4 <- get_patches(nlcdCats, class = 4)
+
+nrow(terra::unique(patched_raster_4[[1]][[1]]))
+
+evergreenPatches <- extract(patched_raster_4[[1]][[1]], points_spat)
+evergreenPatches <- unique(evergreenPatches$lyr.1)
+evergreenPatches <- evergreenPatches[!is.na(evergreenPatches)]
+
+evergreen_patches <- nlcdCats |>
+  lsm_p_area() |>
+  dplyr::filter(class == 4)
+
+evergreenSampled <- subset(evergreen_patches, id %in% evergreenPatches)
+evergreenSampled$sampled <- 1
+evergreen_patches$sampled <- 0
+
+evergreenValue <- c(evergreen_patches$value, evergreenSampled$value)
+evergreenClass <- c(evergreen_patches$sampled, evergreenSampled$sampled)
+
+evergreen <- as.data.frame(cbind(evergreenValue, evergreenClass))
+colnames(evergreen) <- c('value', 'sampled')
+
+ggplot(evergreen, aes(x=value, color=as.factor(sampled), fill=as.factor(sampled))) + 
+  geom_histogram(binwidth=1, alpha=0.2, position="identity") +
+  scale_x_sqrt() +
+  scale_y_sqrt() +
+  labs(fill='Patches', title = "Evergreen Patches") +
+  scale_fill_hue(labels = c("Available", "Sampled")) +
+  xlab("Area (ha)") +
+  ylab("Count") +
+  scale_colour_discrete(guide = "none") +
+  theme_bw()
+
+ks.test(evergreenSampled$value, evergreen_patches$value)
+```
+
+Mixed patch analysis
+
+```{r}
+patched_raster_5 <- get_patches(nlcdCats, class = 5)
+
+nrow(terra::unique(patched_raster_5[[1]][[1]]))
+
+mixedPatches <- extract(patched_raster_5[[1]][[1]], points_spat)
+mixedPatches <- unique(mixedPatches$lyr.1)
+mixedPatches <- mixedPatches[!is.na(mixedPatches)]
+
+mixed_patches <- nlcdCats |>
+  lsm_p_area() |>
+  dplyr::filter(class == 5)
+
+mixedSampled <- subset(mixed_patches, id %in% mixedPatches)
+mixedSampled$sampled <- 1
+mixed_patches$sampled <- 0
+
+mixedValue <- c(mixed_patches$value, mixedSampled$value)
+mixedClass <- c(mixed_patches$sampled, mixedSampled$sampled)
+
+mixed <- as.data.frame(cbind(mixedValue, mixedClass))
+colnames(mixed) <- c('value', 'sampled')
+
+ggplot(mixed, aes(x=value, color=as.factor(sampled), fill=as.factor(sampled))) + 
+  geom_histogram(binwidth=1, alpha=0.2, position="identity") +
+  scale_x_sqrt() +
+  scale_y_sqrt() +
+  labs(fill='Patches', title = "Mixed Patches") +
+  scale_fill_hue(labels = c("Available", "Sampled")) +
+  xlab("Area (ha)") +
+  ylab("Count") +
+  scale_colour_discrete(guide = "none") +
+  theme_bw()
+
+ks.test(mixedSampled$value, mixed_patches$value)
+```
+
+Single forest class
+
+```{r}
+nlcdForest <- nlcdCrop
+
+nlcdForest[nlcdForest %in% c(41,42,43)] <- 1 #forest
+nlcdForest[nlcdForest %in% c(11,21,22,23,24,31,51,52,71,72,81,82,73,74,90,95)] <- 2 #other
+
+forestCats <- data.frame('ID' = c(1, 2),
+                   'category' = c('forest', 'other'))
+
+nlcdForest <- categories(nlcdForest, value=forestCats)
+forestPalette <- c('#006666','#B2E5FF')
+
+patched_raster <- get_patches(nlcdForest, class = 1)
+
+nrow(terra::unique(patched_raster[[1]][[1]]))
+
+pointPatches <- extract(patched_raster[[1]][[1]], points_spat)
+pointPatches <- unique(pointPatches$lyr.1)
+pointPatches <- pointPatches[!is.na(pointPatches)]
+
+patches <- nlcdForest |>
+  lsm_p_area() |>
+  dplyr::filter(class == 1)
+
+patchesSampled <- subset(patches, id %in% pointPatches)
+patchesSampled$sampled <- 1
+patches$sampled <- 0
+
+value <- c(patches$value, patchesSampled$value)
+sampled <- c(patches$sampled, patchesSampled$sampled)
+
+patchesForest <- as.data.frame(cbind(value, sampled))
+
+ggplot(patchesForest, aes(x=value, color=as.factor(sampled), fill=as.factor(sampled))) + 
+  geom_histogram(binwidth=1, alpha=0.2, position="identity") +
+  scale_x_sqrt() +
+  scale_y_sqrt() +
+  labs(fill='Patches', title = "Forest Patches") +
+  scale_fill_hue(labels = c("Available", "Sampled")) +
+  xlab("Area (ha)") +
+  ylab("Count") +
+  scale_colour_discrete(guide = "none") +
+  theme_bw()
+
+ks.test(patchesSampled$value, patches$value)
+```
+
+Single forest class--core area percentage
+
+```{r}
+coreArea <- nlcdForest |>
+  lsm_p_cai() |>
+  dplyr::filter(class == 1)
+
+coreAreaSampled <- subset(coreArea, id %in% pointPatches)
+coreAreaSampled$sampled <- 1
+coreArea$sampled <- 0
+
+valueCA <- c(coreArea$value, coreAreaSampled$value)
+sampledCA <- c(coreArea$sampled, coreAreaSampled$sampled)
+
+patchesCA <- as.data.frame(cbind(valueCA, sampledCA))
+
+ggplot(patchesCA, aes(x=valueCA, color=as.factor(sampledCA), fill=as.factor(sampledCA))) + 
+  geom_histogram(binwidth=1, alpha=0.2, position="identity") +
+  scale_y_sqrt() +
+  labs(fill='Patches', title = "Forest Core Areas") +
+  scale_fill_hue(labels = c("Available", "Sampled")) +
+  xlab("% Core Area") +
+  ylab("Count") +
+  scale_colour_discrete(guide = "none") +
+  theme_bw()
+
+ks.test(coreAreaSampled$value, coreArea$value)
+```
